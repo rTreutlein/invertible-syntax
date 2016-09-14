@@ -44,8 +44,12 @@ instance Choice Printer where
     = q
 
 instance Syntax Printer where
-  pure x = Printer (\y ->  if x == y
-                             then Just ""
-                             else Nothing)
-  token = Printer (\t -> Just [t])
-  withText (Printer p) = Printer (\(s,_) -> p s)
+    pure x = Printer (\y ->  if x == y
+                               then Just ""
+                               else Nothing)
+    token = Printer (\t -> Just [t])
+    withText (Printer p) = Printer (\(s,_) -> p s)
+    ptp :: (Printer String) -> Iso String String -> Printer Atom -> Printer Atom
+    ptp _ iso (Printer p2) = Printer (\a -> (unapply iso) P.<$> p2 a)
+
+

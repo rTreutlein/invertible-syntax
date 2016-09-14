@@ -31,3 +31,4 @@ class (IsoFunctor delta, ProductFunctor delta, Alternative delta)
   pure      ::  Eq alpha => alpha -> delta alpha
   token     ::  delta Char
   withText  ::  delta alpha -> delta (alpha,String)
+  ptp :: delta alpha -> Iso alpha alpha -> delta beta -> delta beta

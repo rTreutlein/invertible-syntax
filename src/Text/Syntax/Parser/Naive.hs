@@ -55,34 +55,22 @@ instance Alternative Parser where
         [] -> []
                         a  -> q s)
 -}
-
-instance Monad Parser where
-
-    (Parser a) -> (a -> Parser b) -> Parser b
-    (Parser p) >>= f
-        = Parser (\s -> case p s of
+instance Syntax Parser where
+    pure x  =  Parser (\s -> [(x, s)])
+    token   =  Parser f where
+      f []      =  []
+      f (t:ts)  =  [(t, ts)]
+    withText (Parser p)
+            = Parser (\s -> case p s of
                             [] -> []
-                            ls -> f ls)
+                            [(e,r)] -> let n = (length s) - (length r)
+                                       in [((e,take n s),r)]
 
-    (Parser String) -> Iso String String -> Parser Atom -> Parser Atom
-    (Parser p1) iso (Parser p2) = Parser (\s -> concatMap p2 $ map mapfunc p1 s)
-        where mapfunc = myappend . (mapFst $ apply iso)
-
-    (Printer String) -> Iso String String -> Printer Atom -> Printer Atom
-    _ iso (Printer p2) = Printer (\a -> (unapply iso) P.<$> p2 a)
+    ptp :: (Parser String) -> Iso String String -> Parser Atom -> Parser Atom
+    ptp (Parser p1) iso (Parser p2) = Parser (\s -> concatMap p2 $ map mapfunc p1 s)
+            where mapfunc = tupleConcat . (mapFst $ apply iso)
 
 mapFst f (a,b) = (f a,b)
+mapSnd f (a,b) = (a,f b)
 
-myappend (a,b) = a ++ b
-
-instance Syntax Parser where
-  pure x  =  Parser (\s -> [(x, s)])
-  token   =  Parser f where
-    f []      =  []
-    f (t:ts)  =  [(t, ts)]
-  withText (Parser p)
-          = Parser (\s -> case p s of
-                          [] -> []
-                          [(e,r)] -> let n = (length s) - (length r)
-                                     in [((e,take n s),r)]
-                   )
+tupleConcat (a,b) = a ++ b
