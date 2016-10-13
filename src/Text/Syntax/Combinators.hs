@@ -15,22 +15,32 @@ module Text.Syntax.Combinators
      -- * Alternation
   ,  (<+>)
   ,  optional
+  ,  optional2
      -- * Whitespace
   ,  skipSpace
   ,  sepSpace
-  ,  optSpace) where
+  ,  optSpace
+     -- XXX This shouldn't be here
+  ,  (&&&)) where
 
 import Prelude (String,(+))
+import qualified Prelude  as P
 
 import Control.Category ((.))
 import Control.Isomorphism.Partial.Constructors (nothing, just, nil, cons, left, right)
 import Control.Isomorphism.Partial.Derived (foldl)
-import Control.Isomorphism.Partial.Prim (Iso, (<$>), inverse, element, unit, commute, ignore)
+import Control.Isomorphism.Partial.Prim
+import Control.Isomorphism.Partial.Unsafe
 
 import Data.Maybe (Maybe)
 import Data.Either (Either)
 
 import Text.Syntax.Classes
+
+(&&&) :: Iso alpha beta -> Iso alpha gamma -> Iso alpha (beta,gamma)
+i &&& j = Iso f g where
+    f a =  (,) P.<$> apply i a P.<*> apply j a
+    g (b,g) = unapply i b
 
 -- derived combinators
 many :: Syntax delta => delta alpha -> delta [alpha]
@@ -79,6 +89,10 @@ chainl1 arg op f
 
 optional :: Syntax delta => delta alpha -> delta (Maybe alpha)
 optional x  = just <$> x <|> nothing <$> text ""
+
+--Always parses a Nothing
+optional2 :: Syntax delta => delta alpha -> delta (Maybe alpha)
+optional2 x  = just <$> x <||> nothing <$> text ""
 
 sepBy :: Syntax delta => delta alpha -> delta () -> delta [alpha]
 sepBy x sep

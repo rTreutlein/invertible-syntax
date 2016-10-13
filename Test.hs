@@ -1,8 +1,9 @@
 {-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, RelaxedPolyRec #-}
+{-# LANGUAGE LambdaCase                 #-}
 module Example where
 
 import Prelude (Show (..), Read (..), Eq (..), String, Integer,
-                map, (++), Maybe (..), ($), fst, not, elem,
+                map, (++),Maybe (..), Either (..), ($), fst, not, elem,
                 notElem, reads, Char)
 
 import Control.Category (id, (.))
@@ -55,14 +56,40 @@ test = do
     word <- ask
     return (text word)
 
-p1 :: Syntax delta => delta Char
-p1 = inverse (ignore 'a') <$> text "r"
+--For text that is both optional and should be parsed into ()
+optext :: Syntax delta => String -> delta ()
+optext t = (text t <|> text "") <* optSpace --(optext (t++" ") <|> text t <|> text "")
 
-p2 :: Syntax delta => delta Char
-p2 = token
+string :: Syntax delta => String -> delta String
+string [] = nil <$> pure () <* optext " "
+string (x:xs) = cons <$> (subset (== x) <$> token) <*> string xs
 
-p3 :: Syntax delta => delta Char
-p3 = p1 <|> p2
+p1 = many1 (string "a") <*> string "ab"
+
+mymplus :: Iso alpha gamma -> Iso beta gamma -> Iso (Either alpha beta) gamma
+mymplus i j = Iso f g where
+    f (Left x) = apply i x
+    f (Right x) = apply j x
+    g y = case unapply i y of
+            Just x -> Just (Left x)
+            Nothing -> Right `fmap` unapply j y
+
+{-mapIso :: Iso a b -> Iso [a] [b]
+mapIso iso = Iso f g where
+    f = mapM apply iso
+    g = mapM unapply iso
+-}
+myid = Iso f g where
+    f a = Just a
+    g _ = Nothing
+
+iso = Iso f g where
+    f a = Just (a,'x')
+    g (a,'x') = Just a
+
+ifJustB :: Iso (a,Maybe b) (Either (a,b) a)
+ifJustB = Iso (\case {(a,Just b) -> Just $ Left (a,b) ; (a,Nothing) -> Just $  Right a})
+              (\case {Left (a,b) -> Just $ (a,Just b) ;  Right a  -> Just $ (a,Nothing)})
 
 {-    integer :: Syntax delta => delta Integer
 integer = Iso read' show' <$> many digit where

@@ -3,23 +3,25 @@ module Text.Syntax.Classes where
 import Prelude (String)
 
 import Control.Isomorphism.Partial (IsoFunctor)
+import Control.Isomorphism.Partial.Unsafe
 import Data.Eq (Eq)
 import Data.Char (Char)
 
 infixl 3 <|>
+infixl 3 <||>
 infixr 6 <*>
 
 class ProductFunctor f where
   (<*>) :: f alpha -> f beta -> f (alpha, beta)
 
 class Alternative f where
-  (<|>) :: f alpha -> f alpha -> f alpha
-  empty :: f alpha
+  (<|>)  :: f alpha -> f alpha -> f alpha
+  (<||>) :: f alpha -> f alpha -> f alpha --Optimaization
+  empty  :: f alpha                       --See Parser Implementation for Detais
 
 --f alpha would be ignore on the printer side
 class Choice f where
     try :: f alpha -> f beta -> f beta
-
 
 
 class (IsoFunctor delta, ProductFunctor delta, Alternative delta)
@@ -31,4 +33,4 @@ class (IsoFunctor delta, ProductFunctor delta, Alternative delta)
   pure      ::  Eq alpha => alpha -> delta alpha
   token     ::  delta Char
   withText  ::  delta alpha -> delta (alpha,String)
-  ptp :: delta alpha -> Iso alpha alpha -> delta beta -> delta beta
+  ptp       ::  delta alpha -> Iso String String -> delta beta -> delta beta

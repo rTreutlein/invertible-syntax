@@ -1,9 +1,11 @@
 module Text.Syntax.Printer.Naive where
 
-import Prelude (String)
+import Prelude (String,error)
+import qualified Prelude as P
 
-import Control.Category ()
+import Control.Category
 import Control.Isomorphism.Partial (IsoFunctor ((<$>)), unapply)
+import Control.Isomorphism.Partial.Unsafe
 import Control.Monad (Monad, return, fail, (>>=), liftM2, mplus)
 
 import Data.Eq (Eq ((==)))
@@ -11,24 +13,20 @@ import Data.Function (($))
 import Data.List ((++))
 import Data.Maybe (Maybe (Just, Nothing), maybe)
 
-import Text.Syntax.Classes (ProductFunctor, Alternative, Syntax, Choice, (<*>), (<|>),  empty, try, pure, token, withText)
+import Text.Syntax.Classes
 
 -- printer
 
-newtype Printer alpha = Printer (alpha -> Maybe String)
+newtype Printer alpha = Printer {print :: alpha -> Maybe String}
 
-print :: Printer alpha -> alpha -> Maybe String
-print (Printer p) x = p x
+wrap p = (Printer p)
 
 printM :: Monad m => Printer alpha -> alpha -> m String
 printM p x = maybe (fail "print error") return $ print p x
 
 instance IsoFunctor Printer where
   iso <$> Printer p
-    = Printer (\b -> unapply iso b >>= p)
-
-Printer p <.> iso
-    = Printer (\b -> fmap (unapply iso) p s)
+    = Printer (\s -> unapply iso s >>= p)
 
 instance ProductFunctor Printer where
   Printer p <*> Printer q
@@ -37,11 +35,9 @@ instance ProductFunctor Printer where
 instance Alternative Printer where
   Printer p <|> Printer q
     = Printer (\s -> mplus (p s) (q s))
+  Printer p <||> Printer q --See Parser for explanation
+    = Printer (\s -> mplus (p s) (q s))
   empty = Printer (\s -> Nothing)
-
-instance Choice Printer where
-  try p q
-    = q
 
 instance Syntax Printer where
     pure x = Printer (\y ->  if x == y
@@ -49,7 +45,4 @@ instance Syntax Printer where
                                else Nothing)
     token = Printer (\t -> Just [t])
     withText (Printer p) = Printer (\(s,_) -> p s)
-    ptp :: (Printer String) -> Iso String String -> Printer Atom -> Printer Atom
-    ptp _ iso (Printer p2) = Printer (\a -> (unapply iso) P.<$> p2 a)
-
-
+    ptp _ iso (Printer p2) = Printer (\a -> (unapply iso) P.=<< p2 a)

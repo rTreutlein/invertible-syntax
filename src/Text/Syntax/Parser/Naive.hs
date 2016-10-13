@@ -1,21 +1,26 @@
 module Text.Syntax.Parser.Naive where
 
 import Prelude (String,(-),length,take)
-import qualified Prelud as P
+import qualified Prelude as P
 
 import Control.Category ()
 import Control.Isomorphism.Partial (IsoFunctor, (<$>), apply)
+import Control.Isomorphism.Partial.Unsafe
 import Control.Monad (Monad, return, fail, (>>=))
 
 import Data.List ((++))
-import Data.Maybe (Maybe (Just))
+import Data.Maybe
 
-import Text.Syntax.Classes (ProductFunctor, Alternative, Syntax, Choice, (<*>), (<|>),  empty, try, pure, token, withText)
+import Text.Syntax.Classes
 
 -- parser
 
 newtype Parser alpha
   = Parser (String -> [(alpha, String)])
+
+
+rawparse :: Parser alpha -> String -> [(alpha,String)]
+rawparse (Parser p) s = p s
 
 parse :: Parser alpha -> String -> [alpha]
 parse (Parser p) s = [ x | (x, "") <- p s ]
@@ -33,9 +38,6 @@ instance IsoFunctor Parser where
                      |  (x, s')  <-  p s
                      ,  Just y   <-  [apply iso x] ])
 
-Parser p <.> iso
-    = (\s -> p $ apply iso x)
-
 instance ProductFunctor Parser where
   Parser p <*> Parser q
     = Parser (\s ->  [  ((x, y), s'')
@@ -46,15 +48,12 @@ instance Alternative Parser where
   Parser p <|> Parser q
     = Parser (\s -> case p s of
                         [] -> q s
-                        a  -> a)
-  empty = Parser (\s -> [])
+                        a  -> a -- ++ (q s)
+             )
+  Parser p <||> Parser q            --This considers both posibilites
+    = Parser (\s -> (p s) ++ (q s)) --Usefull incase one way leads into a dead end
+  empty = Parser (\s -> [])         --but to slow to always use.
 
-{-instance Choice Parser where
-    try (Parser p) (Parser q)
-    = Parser (\s -> case p s of
-        [] -> []
-                        a  -> q s)
--}
 instance Syntax Parser where
     pure x  =  Parser (\s -> [(x, s)])
     token   =  Parser f where
@@ -63,14 +62,20 @@ instance Syntax Parser where
     withText (Parser p)
             = Parser (\s -> case p s of
                             [] -> []
-                            [(e,r)] -> let n = (length s) - (length r)
-                                       in [((e,take n s),r)]
+                            a  -> P.map (getText s) a
+                     )
+        where getText s (e,r) = ((e,_getText s r),r)
+              _getText s r = take (lengthDiff s r) s
+              lengthDiff a b = (length a) - (length b)
 
-    ptp :: (Parser String) -> Iso String String -> Parser Atom -> Parser Atom
-    ptp (Parser p1) iso (Parser p2) = Parser (\s -> concatMap p2 $ map mapfunc p1 s)
-            where mapfunc = tupleConcat . (mapFst $ apply iso)
+    ptp parser1 iso (Parser p2) = Parser (\s -> P.concatMap p2 (filterd s))
+            where mapfunc = myConcat P.. (mapFst (apply iso)) P.. (mapFst P.snd)
+                  morphed s = P.map mapfunc (p1 s)
+                  filterd s = P.map (\(Just a) -> a) P.$ P.filter isJust (morphed s)
+                  (Parser p1) = withText parser1
 
 mapFst f (a,b) = (f a,b)
 mapSnd f (a,b) = (a,f b)
 
-tupleConcat (a,b) = a ++ b
+myConcat (Just a,b) = Just (a ++ b)
+myConcat (Nothing,b) = Nothing
