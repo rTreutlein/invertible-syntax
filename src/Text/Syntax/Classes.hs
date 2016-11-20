@@ -19,11 +19,6 @@ class Alternative f where
   (<||>) :: f alpha -> f alpha -> f alpha --Optimaization
   empty  :: f alpha                       --See Parser Implementation for Detais
 
---f alpha would be ignore on the printer side
-class Choice f where
-    try :: f alpha -> f beta -> f beta
-
-
 class (IsoFunctor delta, ProductFunctor delta, Alternative delta)
    => Syntax delta where
   -- (<$>)   ::  Iso alpha beta -> delta alpha -> delta beta
