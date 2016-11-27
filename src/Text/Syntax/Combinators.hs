@@ -96,8 +96,8 @@ optional2 x  = just <$> x <||> nothing <$> text ""
 
 sepBy :: Syntax delta => delta alpha -> delta () -> delta [alpha]
 sepBy x sep
-  =    nil <$> text ""
-  <|>  cons <$> x <*> many (sep *> x)
+  = cons <$> x <*> many (sep *> x)
+  <|>  nil <$> text ""
 
 comma :: Syntax delta => delta ()
 comma = text ","
