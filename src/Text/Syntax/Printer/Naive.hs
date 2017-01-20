@@ -46,3 +46,4 @@ instance Syntax Printer where
     token = Printer (\t -> Just [t])
     withText (Printer p) = Printer (\(s,_) -> p s)
     ptp _ iso (Printer p2) = Printer (\a -> (unapply iso) P.=<< p2 a)
+    withOut p1 _ = p1

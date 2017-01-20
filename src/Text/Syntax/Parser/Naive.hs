@@ -1,6 +1,6 @@
 module Text.Syntax.Parser.Naive where
 
-import Prelude (String,(-),length,take)
+import Prelude (String,(-),length,take,(==))
 import qualified Prelude as P
 
 import Control.Category ()
@@ -73,6 +73,12 @@ instance Syntax Parser where
                   morphed s = P.map mapfunc (p1 s)
                   filterd s = P.map (\(Just a) -> a) P.$ P.filter isJust (morphed s)
                   (Parser p1) = withText parser1
+    withOut (Parser p1) (Parser p2) =
+        Parser (\s -> let parses = p1 s
+                      in P.foldr (\(x,s') ls -> if p2 s' == []
+                                                   then (x,s'):ls
+                                                   else ls)
+                                 [] parses)
 
 mapFst f (a,b) = (f a,b)
 mapSnd f (a,b) = (a,f b)

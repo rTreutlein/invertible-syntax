@@ -28,4 +28,5 @@ class (IsoFunctor delta, ProductFunctor delta, Alternative delta)
   pure      ::  Eq alpha => alpha -> delta alpha
   token     ::  delta Char
   withText  ::  delta alpha -> delta (alpha,String)
+  withOut   ::  Eq beta => delta alpha -> delta beta -> delta alpha
   ptp       ::  delta alpha -> Iso String String -> delta beta -> delta beta

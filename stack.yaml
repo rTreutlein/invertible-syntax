@@ -9,6 +9,7 @@ packages:
 - location:
    git: https://github.com/rTreutlein/partial-isomorphisms
    commit: a8d1b86de0a1e1a85c20a25937f50a173b0a990d
+  extra-dep: true
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 #extra-deps: [partial-isomorphisms-0.2.2]
