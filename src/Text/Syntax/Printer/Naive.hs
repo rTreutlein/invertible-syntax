@@ -6,7 +6,7 @@ import qualified Prelude as P
 import Control.Category
 import Control.Isomorphism.Partial (IsoFunctor ((<$>)), unapply)
 import Control.Isomorphism.Partial.Unsafe
-import Control.Monad (Monad, return, fail, (>>=), liftM2, mplus)
+import Control.Monad (Monad, return, (>>=), liftM2, mplus)
 
 import Data.Eq (Eq ((==)))
 import Data.Function (($))
@@ -22,7 +22,7 @@ newtype Printer alpha = Printer {print :: alpha -> Maybe String}
 wrap p = (Printer p)
 
 printM :: Monad m => Printer alpha -> alpha -> m String
-printM p x = maybe (fail "print error") return $ print p x
+printM p x = maybe (error "print error") return $ print p x
 
 instance IsoFunctor Printer where
   iso <$> Printer p

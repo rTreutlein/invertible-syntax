@@ -6,7 +6,7 @@ import qualified Prelude as P
 import Control.Category ()
 import Control.Isomorphism.Partial (IsoFunctor, (<$>), apply)
 import Control.Isomorphism.Partial.Unsafe
-import Control.Monad (Monad, return, fail, (>>=))
+import Control.Monad (Monad, return, (>>=))
 
 import Data.List ((++))
 import Data.Maybe
@@ -28,9 +28,9 @@ parse (Parser p) s = [ x | (x, "") <- p s ]
 parseM :: Monad m => Parser alpha -> String -> m alpha
 parseM p s
   =  case parse p s of
-       []        ->  fail "parse error"
+       []        ->  P.error "parse error"
        [result]  ->  return result
-       _         ->  fail "ambiguous input"
+       _         ->  P.error "ambiguous input"
 
 instance IsoFunctor Parser where
   iso <$> Parser p
